@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điểm</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="navbar">
+                <a href="{{ url_for('schedule') }}" class="logo">ICTU</a>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('schedule') }}">Home</a></li>
+                    <li><a href="#" id="logout">Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <div class="container">
+            <h1 class="dialog-title">Điểm số sinh viên</h1>
+            <p class="dialog-description">Dưới đây là điểm số của bạn:</p>
+            <div class="table-container" id="score-content">
+                <div class="w-full min-h-40 flex items-center justify-center" id="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="buttons">
+                    <button onclick="showDetails()">Chi tiết điểm</button>
+                    <button onclick="showSummary()">Tổng kết</button>
+                </div>
+                <div id="score-details" style="display: none;">
+                    <h2 class="dialog-title">Chi tiết điểm</h2>
+                    <table id="score-detail-table">
+                        <thead>
+                            <tr>
+                                <th>STT</th>
+                                <th>Mã HP</th>
+                                <th>Tên HP</th>
+                                <th><a href="#" onclick="sortTable(3)">Số TC</a></th>
+                                <th>Đánh Giá</th>
+                                <th><a href="#" onclick="sortTable(5)">Chuyên Cần</a></th>
+                                <th><a href="#" onclick="sortTable(6)">Thi</a></th>
+                                <th><a href="#" onclick="sortTable(7)">Tổng Kết</a></th>
+                                <th><a href="#" onclick="sortTable(8)">Điểm Chữ</a></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Details will be inserted here by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="summary" style="display: none;">
+                    <h2 class="dialog-title">Tổng kết</h2>
+                    <table id="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Năm học</th>
+                                <th>Học kỳ</th>
+                                <th>TBTL 10</th>
+                                <th>TBTL 4</th>
+                                <th>TC</th>
+                                <th>TBC 10</th>
+                                <th>TBC 4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Summary will be inserted here by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function showDetails() {
+            $('#summary').hide();
+            $('#score-details').show();
+        }
+
+        function showSummary() {
+            $('#score-details').hide();
+            $('#summary').show();
+        }
+        $(document).ready(function(){
+        $('#logout').on('click', function(event){
+            event.preventDefault();
+            $.ajax({
+                url: '/api/logout',
+                type: 'POST',
+                success: function(response){
+                    if(response.message){
+                        window.location.href = "{{ url_for('index') }}";  // Redirect to login page
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Logout request failed:", status, error);
+                }
+            });
+        });
+
+        $('#loading').show();
+        $('#score-details').hide();
+
+        $.ajax({
+            url: '/api/scores',
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + "{{ session['token'] }}"
+            },
+            success: function(response){
+                $('#loading').hide();
+                $('#score-details').show();
+
+                if(response.error){
+                    $('#score-content').text(response.message).css('color', 'red');
+                } else {
+                    const scores = response.diemSoData;
+                    const summary = response.tongKetData;
+
+                    // Populate score details table
+                    let scoresHTML = '';
+                    scores.forEach(item => {
+                        scoresHTML += `<tr>
+                            <td>${item.stt}</td>
+                            <td>${item.maHP}</td>
+                            <td>${item.tenHP}</td>
+                            <td>${item.soTC}</td>
+                            <td>${item.danhGia}</td>
+                            <td>${item.chuyenCan}</td>
+                            <td>${item.thi}</td>
+                            <td>${item.tongKet}</td>
+                            <td>${item.diemChu}</td>
+                        </tr>`;
+                    });
+                    $('#score-detail-table tbody').html(scoresHTML);
+
+                    // Populate summary table
+                    let summaryHTML = '';
+                    summary.forEach(item => {
+                        summaryHTML += `<tr>
+                            <td>${item.namHoc}</td>
+                            <td>${item.hocKy}</td>
+                            <td>${item.TBTL10}</td>
+                            <td>${item.TBTL4}</td>
+                            <td>${item.TC}</td>
+                            <td>${item.TBC10}</td>
+                            <td>${item.TBC4}</td>
+                        </tr>`;
+                    });
+                    $('#summary-table tbody').html(summaryHTML);
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                $('#loading').hide();
+                $('#score-content').show().text('Đã xảy ra lỗi: ' + textStatus).css('color', 'red');
+            }
+        });
+    });
+</script>
+<script>
+function sortTable(columnIndex) {
+    var table = document.getElementById("score-detail-table");
+    var rows = Array.from(table.querySelectorAll("tbody tr"));
+    var isAscending = table.getAttribute('data-sort-order') === 'asc';
+
+    rows.sort(function(rowA, rowB) {
+        var cellA = rowA.cells[columnIndex].textContent.trim();
+        var cellB = rowB.cells[columnIndex].textContent.trim();
+
+        // Convert to numbers if cells contain numeric values
+        var valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
+        var valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
+
+        return isAscending ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
+    });
+
+    var tbody = table.querySelector("tbody");
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+
+    // Toggle sorting order
+    table.setAttribute('data-sort-order', isAscending ? 'desc' : 'asc');
+}
+</script>
+
+</body>
+</html>

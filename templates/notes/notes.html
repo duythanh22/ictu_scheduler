@@ -1,0 +1,266 @@
+{% extends "notes/layout.html" %}
+
+{% block title %}Note Keeper{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <h1 class="h2 px-3">Note Keeper</h1>
+                <p class="px-3">Xin chào <strong>{{ username }}</strong></p>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('schedule') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logout">Logout</a></li>
+                </ul>
+                <hr>
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>Your Notes</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="new-note">New Note</button>
+                </h6>
+                <ul class="nav flex-column mb-2" id="note-list"></ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2" id="current-note-title" contenteditable="true">Select a Note</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="save-note">Save</button>
+{#                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-title">Edit Title</button>#}
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="delete-note">Delete</button>
+                    </div>
+                </div>
+            </div>
+            <div id="editor">
+                <textarea id="markdown-content"></textarea>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let simplemde = new SimpleMDE({
+        element: document.getElementById("markdown-content"),
+        spellChecker: false,
+        hideIcons: ['side-by-side', 'fullscreen'],
+        showIcons: ['code', 'table'],
+        promptURLs: true,
+        autosave: {
+            enabled: true,
+            uniqueId: "notekeeper-autosave",
+            delay: 1000,
+        },
+    });
+
+    let currentNoteTitle = '';
+    let notes = [];
+
+    function updateNoteList() {
+        const noteList = document.getElementById('note-list');
+        noteList.innerHTML = '';
+        notes.forEach(note => {
+            const li = document.createElement('li');
+            li.className = 'nav-item';
+            const a = document.createElement('a');
+            a.className = 'nav-link' + (note.title === currentNoteTitle ? ' active' : '');
+            a.href = '#';
+            a.textContent = note.title;
+            a.setAttribute('data-title', note.title);
+            a.onclick = () => loadNote(note.title);
+            li.appendChild(a);
+            noteList.appendChild(li);
+        });
+    }
+
+    function updateSingleNoteInList(oldTitle, newTitle) {
+        const noteList = document.getElementById('note-list');
+        const noteItem = noteList.querySelector(`a[data-title="${oldTitle}"]`);
+        if (noteItem) {
+            noteItem.textContent = newTitle;
+            noteItem.setAttribute('data-title', newTitle);
+            noteItem.onclick = () => loadNote(newTitle);
+        }
+    }
+
+    function loadNote(title) {
+        if (currentNoteTitle) {
+            saveNote();
+        }
+        $.ajax({
+            url: '/notes',
+            type: 'POST',
+            data: {
+                'type': 'switch',
+                'cur_note_title': currentNoteTitle,
+                'cur_note_content_updated': simplemde.value(),
+                'next_note_title': title
+            },
+            success: function(response) {
+                currentNoteTitle = response.next_note_title;
+                document.getElementById('current-note-title').textContent = currentNoteTitle;
+                simplemde.value(response.next_note_content);
+                updateNoteList();
+            },
+            error: function(error) {
+                console.error('Error loading note:', error);
+            }
+        });
+    }
+
+    function saveNote() {
+        $.ajax({
+            url: '/notes',
+            type: 'POST',
+            data: {
+                'type': 'save',
+                'note_title': currentNoteTitle,
+                'note_content_updated': simplemde.value()
+            },
+            success: function(response) {
+                console.log('Note saved successfully');
+            },
+            error: function(error) {
+                console.error('Error saving note:', error);
+            }
+        });
+    }
+
+    function createNewNote() {
+        let newTitle = "Untitled " + (notes.length + 1);
+        $.ajax({
+            url: '/notes',
+            type: 'POST',
+            data: {
+                'type': 'new_note',
+                'cur_note_title': currentNoteTitle,
+                'cur_note_content_updated': simplemde.value(),
+                'next_note_title': newTitle
+            },
+            success: function(response) {
+                notes.push({ title: response.next_note_title, content: '' });
+                loadNote(response.next_note_title);
+            },
+            error: function(error) {
+                console.error('Error creating new note:', error);
+            }
+        });
+    }
+
+    let titleElement = document.getElementById('current-note-title');
+    let originalTitle = '';
+
+    titleElement.addEventListener('focus', function() {
+        originalTitle = this.textContent;
+    });
+
+    titleElement.addEventListener('blur', function() {
+        let newTitle = this.textContent.trim();
+        if (newTitle !== originalTitle && newTitle !== '') {
+            updateNoteTitle(originalTitle, newTitle);
+        } else {
+            this.textContent = originalTitle;
+        }
+    });
+
+    titleElement.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+        }
+    });
+
+    function updateNoteTitle(oldTitle, newTitle) {
+        $.ajax({
+            url: '/notes',
+            type: 'POST',
+            data: {
+                'type': 'edit_title',
+                'cur_note_title': oldTitle,
+                'next_note_title': newTitle
+            },
+            success: function(response) {
+                currentNoteTitle = response.next_note_title;
+                titleElement.textContent = currentNoteTitle;
+                notes = notes.map(note =>
+                    note.title === oldTitle ? {...note, title: currentNoteTitle} : note
+                );
+                updateSingleNoteInList(oldTitle, currentNoteTitle);
+            },
+            error: function(error) {
+                console.error('Error editing note title:', error);
+                alert('Failed to edit note title. Please try again.');
+                titleElement.textContent = oldTitle;
+            }
+        });
+    }
+
+    function updateSingleNoteInList(oldTitle, newTitle) {
+        const noteList = document.getElementById('note-list');
+        const noteItem = noteList.querySelector(`a[data-title="${oldTitle}"]`);
+        if (noteItem) {
+            noteItem.textContent = newTitle;
+            noteItem.setAttribute('data-title', newTitle);
+            noteItem.onclick = () => loadNote(newTitle);
+        }
+    }
+
+    function deleteNote() {
+        if (notes.length <= 1) {
+            alert("Cannot delete the last note.");
+            return;
+        }
+        if (confirm(`Are you sure you want to delete "${currentNoteTitle}"?`)) {
+            $.ajax({
+                url: '/notes',
+                type: 'POST',
+                data: {
+                    'type': 'delete_note',
+                    'cur_note_title': currentNoteTitle
+                },
+                success: function(response) {
+                    notes = notes.filter(note => note.title !== currentNoteTitle);
+                    loadNote(notes[0].title);
+                },
+                error: function(error) {
+                    console.error('Error deleting note:', error);
+                    alert('Failed to delete note. Please try again.');
+                }
+            });
+        }
+    }
+
+    function initializeNotes() {
+        $.ajax({
+            url: '/notes',
+            type: 'POST',
+            data: { 'type': 'setup_buttons' },
+            success: function(response) {
+                notes = response.note_titles.map(title => ({ title, content: '' }));
+                updateNoteList();
+                if (notes.length > 0) {
+                    loadNote(notes[0].title);
+                }
+            },
+            error: function(error) {
+                console.error('Error initializing notes:', error);
+            }
+        });
+    }
+
+    document.getElementById('new-note').addEventListener('click', createNewNote);
+    document.getElementById('save-note').addEventListener('click', saveNote);
+    document.getElementById('edit-title').addEventListener('click', editNoteTitle);
+    document.getElementById('delete-note').addEventListener('click', deleteNote);
+
+    initializeNotes();
+});
+</script>
+{% endblock %}

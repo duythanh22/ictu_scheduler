@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Thi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="navbar">
+                <a href="{{ url_for('schedule') }}" class="logo">ICTU</a>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('schedule') }}">Home</a></li>
+                    <li><a href="#" id="logout">Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <div class="container mt-5">
+        <h2 class="mb-4">Lịch Thi</h2>
+        <div id="loading">Đang tải...</div>
+        <div id="exam-details" style="display:none;">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Mã HP</th>
+                        <th>Tên HP</th>
+                        <th>Số TC</th>
+                        <th>Ngày Thi</th>
+                        <th>Ca Thi</th>
+                        <th>Hình Thức Thi</th>
+                        <th>Số Báo Danh</th>
+                        <th>Phòng Thi</th>
+                        <th>Ghi Chú</th>
+                    </tr>
+                </thead>
+                <tbody id="exam-content">
+                </tbody>
+            </table>
+        </div>
+        <div id="error-message" style="color:red;"></div>
+    </div>
+
+    <script>
+        $('#logout').on('click', function(event){
+            event.preventDefault();
+            $.ajax({
+                url: '/api/logout',
+                type: 'POST',
+                success: function(response){
+                    if(response.message){
+                        window.location.href = "{{ url_for('index') }}";  // Redirect to login page
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Logout request failed:", status, error);
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            $.ajax({
+                url: '/api/exam',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + "{{ session['token'] }}"
+                },
+                success: function(response) {
+                    $('#loading').hide();
+                    if (response.error) {
+                        $('#error-message').text(response.message);
+                    } else {
+                        $('#exam-details').show();
+                        let examData = response.lichthiData;
+                        let examContent = '';
+                        examData.forEach(function(item) {
+                            examContent += `
+                                <tr>
+                                    <td>${item.stt}</td>
+                                    <td>${item.maHP}</td>
+                                    <td>${item.tenHP}</td>
+                                    <td>${item.soTC}</td>
+                                    <td>${item.ngayThi}</td>
+                                    <td>${item.caThi}</td>
+                                    <td>${item.hinhThucThi}</td>
+                                    <td>${item.soBaoDanh}</td>
+                                    <td>${item.phongThi}</td>
+                                    <td>${item.ghiChu}</td>
+                                </tr>
+                            `;
+                        });
+                        $('#exam-content').html(examContent);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#loading').hide();
+                    $('#error-message').text('Có lỗi xảy ra khi tải dữ liệu.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
