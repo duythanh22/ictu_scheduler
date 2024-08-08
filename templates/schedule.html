@@ -46,7 +46,7 @@
     </main>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-    $(document).ready(function(){
+        $(document).ready(function(){
         $('#logout').on('click', function(event){
             event.preventDefault();
             $.ajax({
@@ -63,57 +63,50 @@
             });
         });
     });
-
     $(document).ready(function(){
-        $.ajax({
-            url: '/api/schedule',
-            type: 'GET',
-            success: function(response){
-                if(response.error){
-                    $('#schedule').text(response.message).css('color', 'red');
-                } else {
-                    const schedule = response.schedule;
-                    const today = new Date(); // Get current date
-                    let scheduleHTML = '';
+    $.ajax({
+        url: '/api/schedule',
+        type: 'GET',
+        success: function(response){
+            if(response.error){
+                $('#schedule').text(response.message).css('color', 'red');
+            } else {
+                const schedule = response.schedule;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Set to beginning of the day
+                let scheduleHTML = '';
+                const daysOfWeek = {
+                    "Monday": "Thứ Hai",
+                    "Tuesday": "Thứ Ba",
+                    "Wednesday": "Thứ Tư",
+                    "Thursday": "Thứ Năm",
+                    "Friday": "Thứ Sáu",
+                    "Saturday": "Thứ Bảy",
+                    "Sunday": "Chủ Nhật"
+                };
+                let hasSchedule = false;
 
-                    const daysOfWeek = {
-                        "Monday": "Thứ Hai",
-                        "Tuesday": "Thứ Ba",
-                        "Wednesday": "Thứ Tư",
-                        "Thursday": "Thứ Năm",
-                        "Friday": "Thứ Sáu",
-                        "Saturday": "Thứ Bảy",
-                        "Sunday": "Chủ Nhật"
-                    };
+                for (const week in schedule) {
+                    const weekData = schedule[week];
+                    const startDate = new Date(weekData.start_date);
+                    const endDate = new Date(weekData.end_date);
+                    endDate.setHours(23, 59, 59, 999); // Set to end of the day
 
-                    for (const week in schedule) {
-                        const weekData = schedule[week];
-                        const startDate = new Date(weekData.start_date);
-                        const endDate = new Date(weekData.end_date);
-
-                        // Skip weeks before today
-                        if (endDate < today) {
-                            continue;
-                        }
-
+                    // Include the week if it ends today or in the future
+                    if (endDate >= today) {
                         const startDateString = startDate.toLocaleDateString('vi-VN', { year: 'numeric', month: 'numeric', day: 'numeric' });
                         const endDateString = endDate.toLocaleDateString('vi-VN', { year: 'numeric', month: 'numeric', day: 'numeric' });
-
                         scheduleHTML += `<h3>Tuần ${week} (${startDateString} - ${endDateString})</h3>`;
 
-                        const daysSchedule = {
-                            "Thứ Hai": [],
-                            "Thứ Ba": [],
-                            "Thứ Tư": [],
-                            "Thứ Năm": [],
-                            "Thứ Sáu": [],
-                            "Thứ Bảy": [],
-                            "Chủ Nhật": []
-                        };
+                        const daysSchedule = Object.fromEntries(
+                            Object.values(daysOfWeek).map(day => [day, []])
+                        );
 
                         weekData.courses.forEach(course => {
                             const courseDate = new Date(course[0]);
-                            if (courseDate >= today) { // Only include courses from today onwards
+                            courseDate.setHours(0, 0, 0, 0); // Set to beginning of the day
+                            if (courseDate >= today) {
+                                hasSchedule = true;
                                 const options = { year: 'numeric', month: 'numeric', day: 'numeric' };
                                 const date = courseDate.toLocaleDateString('vi-VN', options);
                                 const weekday = courseDate.toLocaleDateString('en-US', { weekday: 'long' });
@@ -145,14 +138,20 @@
                             }
                         }
                     }
-                    $('#schedule').html(scheduleHTML);
                 }
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                $('#schedule').text('Đã xảy ra lỗi: ' + textStatus).css('color', 'red');
+
+                if (!hasSchedule) {
+                    scheduleHTML = '<p>Không có lịch học!</p>';
+                }
+
+                $('#schedule').html(scheduleHTML);
             }
-        });
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            $('#schedule').text('Đã xảy ra lỗi: ' + textStatus).css('color', 'red');
+        }
     });
+});
 </script>
 </body>
 </html>

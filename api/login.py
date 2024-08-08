@@ -11,6 +11,7 @@ login_api = Blueprint('login_api', __name__)
 # URL constants
 url_login = "http://220.231.119.171/kcntt/login.aspx"
 
+
 class CustomSession(requests.Session):
     def __init__(self, *args, **kwargs):
         super(CustomSession, self).__init__(*kwargs)
@@ -18,10 +19,13 @@ class CustomSession(requests.Session):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         })
 
+
 client = CustomSession()
+
 
 def get_all_form_elements(soup):
     return [tag for tag in soup.find_all(['select', 'textarea', 'input']) if tag.get('name')]
+
 
 @login_api.route('/login', methods=['POST'])
 def login():
@@ -96,6 +100,7 @@ def login():
         'error': True,
         'message': 'Đã có lỗi xảy ra, vui lòng thử lại sau'
     })
+
 
 @login_api.route('/logout', methods=['POST'])
 def logout():

@@ -189,11 +189,11 @@ def get_schedule():
 
     extracted_info = extract_course_info(schedule_data)
     organized_schedule = organize_by_week(extracted_info)
-    # extracted_info = extract_course_info(schedule_data)
-    # with open('check2.txt', 'w', encoding='utf-8') as f:
-    #     f.write(str(extracted_info))
-    # organized_schedule = organize_by_week(extracted_info)
-    # with open('check1.txt', 'w', encoding='utf-8') as f:
-    #     f.write(str(organized_schedule))
+    extracted_info = extract_course_info(schedule_data)
+    with open('check2.txt', 'w', encoding='utf-8') as f:
+        f.write(str(extracted_info))
+    organized_schedule = organize_by_week(extracted_info)
+    with open('check1.txt', 'w', encoding='utf-8') as f:
+        f.write(str(organized_schedule))
 
     return jsonify({'error': False, 'schedule': organized_schedule})
