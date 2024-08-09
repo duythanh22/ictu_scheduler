@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Điểm</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #charts {
+            width: 100%;
+            text-align: center;
+        }
+        #charts-image {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </head>
 <body>
@@ -30,6 +45,7 @@
                 <div id="buttons">
                     <button onclick="showDetails()">Chi tiết điểm</button>
                     <button onclick="showSummary()">Tổng kết</button>
+                    <button onclick="showCharts()">Thống kê</button>
                 </div>
                 <div id="score-details" style="display: none;">
                     <h2 class="dialog-title">Chi tiết điểm</h2>
@@ -71,22 +87,43 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="charts" style="display: none;">
+                    <h2 class="dialog-title">Thống kê điểm</h2>
+                    <img id="charts-image" src="" alt="Score Charts">
+                </div>
             </div>
         </div>
     </main>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        function showDetails() {
-            $('#summary').hide();
-            $('#score-details').show();
-        }
+<script>
+    let scoresData;
 
-        function showSummary() {
-            $('#score-details').hide();
-            $('#summary').show();
+    function showDetails() {
+        $('#summary').hide();
+        $('#charts').hide();
+        $('#score-details').show();
+    }
+
+    function showSummary() {
+        $('#score-details').hide();
+        $('#charts').hide();
+        $('#summary').show();
+    }
+
+    function showCharts() {
+        $('#score-details').hide();
+        $('#summary').hide();
+        $('#charts').show();
+
+        if (scoresData && scoresData.charts) {
+            $('#charts-image').attr('src', 'data:image/png;base64,' + scoresData.charts);
+        } else {
+            $('#charts').html('<p>Charts data not available.</p>');
         }
-        $(document).ready(function(){
+    }
+
+    $(document).ready(function(){
         $('#logout').on('click', function(event){
             event.preventDefault();
             $.ajax({
@@ -105,6 +142,8 @@
 
         $('#loading').show();
         $('#score-details').hide();
+        $('#summary').hide();
+        $('#charts').hide();
 
         $.ajax({
             url: '/api/scores',
@@ -114,8 +153,7 @@
             },
             success: function(response){
                 $('#loading').hide();
-                $('#score-details').show();
-
+                scoresData = response;  // Store the entire response
                 if(response.error){
                     $('#score-content').text(response.message).css('color', 'red');
                 } else {
@@ -153,6 +191,9 @@
                         </tr>`;
                     });
                     $('#summary-table tbody').html(summaryHTML);
+
+                    // Show score details by default
+                    showDetails();
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
@@ -161,32 +202,26 @@
             }
         });
     });
-</script>
-<script>
-function sortTable(columnIndex) {
-    var table = document.getElementById("score-detail-table");
-    var rows = Array.from(table.querySelectorAll("tbody tr"));
-    var isAscending = table.getAttribute('data-sort-order') === 'asc';
 
-    rows.sort(function(rowA, rowB) {
-        var cellA = rowA.cells[columnIndex].textContent.trim();
-        var cellB = rowB.cells[columnIndex].textContent.trim();
-
-        // Convert to numbers if cells contain numeric values
-        var valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
-        var valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
-
-        return isAscending ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
-    });
-
-    var tbody = table.querySelector("tbody");
-    rows.forEach(function(row) {
-        tbody.appendChild(row);
-    });
-
-    // Toggle sorting order
-    table.setAttribute('data-sort-order', isAscending ? 'desc' : 'asc');
-}
+    function sortTable(columnIndex) {
+        var table = document.getElementById("score-detail-table");
+        var rows = Array.from(table.querySelectorAll("tbody tr"));
+        var isAscending = table.getAttribute('data-sort-order') === 'asc';
+        rows.sort(function(rowA, rowB) {
+            var cellA = rowA.cells[columnIndex].textContent.trim();
+            var cellB = rowB.cells[columnIndex].textContent.trim();
+            // Convert to numbers if cells contain numeric values
+            var valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
+            var valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
+            return isAscending ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
+        });
+        var tbody = table.querySelector("tbody");
+        rows.forEach(function(row) {
+            tbody.appendChild(row);
+        });
+        // Toggle sorting order
+        table.setAttribute('data-sort-order', isAscending ? 'desc' : 'asc');
+    }
 </script>
 
 </body>

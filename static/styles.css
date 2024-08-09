@@ -72,6 +72,11 @@ body {
     color: #d93025;
 }
 
+.no-pointer {
+    pointer-events: none;
+}
+
+
 h2 {
     margin-top: 0;
 }

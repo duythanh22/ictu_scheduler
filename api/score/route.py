@@ -5,6 +5,91 @@ from bs4 import BeautifulSoup
 from flask import Blueprint, jsonify, session
 from api.login import CustomSession
 
+import matplotlib.pyplot as plt
+import numpy as np
+from collections import defaultdict, Counter
+import io
+import base64
+
+import matplotlib.pyplot as plt
+import numpy as np
+import io
+import base64
+from collections import Counter
+
+
+def create_charts(data_score_detail, data_score_sum):
+    # Create a figure with three vertically stacked subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18))
+
+    # Pie chart for letter grade distribution
+    diemchu_counts = Counter(item['diemChu'] for item in data_score_detail)
+    labels = list(diemchu_counts.keys())
+    sizes = list(diemchu_counts.values())
+
+    ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal')
+    ax1.set_title('Phân bố Điểm Chữ', fontsize=14)
+
+    # Prepare data for GPA charts
+    years = []
+    semesters = []
+    semester_gpas = []
+    yearly_gpas = []
+    cumulative_gpas = []
+
+    for item in data_score_sum:
+        if item['hocKy'] in ['1', '2']:
+            years.append(item['namHoc'])
+            semesters.append(f"{item['namHoc']} - HK{item['hocKy']}")
+            semester_gpas.append(float(item['TBC4']))
+        elif item['hocKy'] == 'Cả Năm':
+            yearly_gpas.append(float(item['TBC4']))
+        elif item['namHoc'] == 'Toàn khóa':
+            overall_gpa = float(item['TBC4'])
+
+    # Calculate cumulative GPA
+    cumulative_gpas = np.cumsum(semester_gpas) / np.arange(1, len(semester_gpas) + 1)
+
+    # Plot semester and yearly GPA trends
+    ax2.plot(semesters, semester_gpas, marker='o', label='GPA Học Kỳ', color='blue')
+    ax2.plot(semesters[1::2], yearly_gpas, marker='s', linestyle='--', color='red', label='GPA Cả Năm')
+
+    ax2.set_xlabel('Học Kỳ', fontsize=12)
+    ax2.set_ylabel('GPA (Thang 4.0)', fontsize=12)
+    ax2.set_title('Xu hướng GPA Học Kỳ và Cả Năm', fontsize=14)
+    ax2.set_xticks(range(len(semesters)))
+    ax2.set_xticklabels(semesters, rotation=45, ha='right')
+    ax2.legend(loc='upper left')
+
+    # Plot cumulative GPA trend
+    ax3.plot(semesters, cumulative_gpas, marker='o', label='GPA Tích Lũy', color='green')
+    ax3.axhline(y=overall_gpa, color='red', linestyle='--', label='GPA Toàn Khóa')
+
+    ax3.set_xlabel('Học Kỳ', fontsize=12)
+    ax3.set_ylabel('GPA (Thang 4.0)', fontsize=12)
+    ax3.set_title('Xu hướng GPA Tích Lũy', fontsize=14)
+    ax3.set_xticks(range(len(semesters)))
+    ax3.set_xticklabels(semesters, rotation=45, ha='right')
+    ax3.legend(loc='upper left')
+
+    plt.tight_layout()
+
+    # Save plot to a bytes buffer
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
+    buffer.seek(0)
+
+    # Convert PNG image to base64 string
+    image_png = buffer.getvalue()
+    graph = base64.b64encode(image_png).decode('utf-8')
+
+    buffer.close()
+    plt.close()
+
+    return graph
+
+
 scores = Blueprint('scores', __name__)
 
 client = CustomSession()
@@ -84,10 +169,14 @@ def get_scores():
                 'TBC4': cells[10].get_text(strip=True)
             })
 
+        # Create charts
+        charts = create_charts(data_score_detail, data_score_sum)
+
         return jsonify({
             'error': False,
             'diemSoData': data_score_detail,
-            'tongKetData': data_score_sum
+            'tongKetData': data_score_sum,
+            'charts': charts
         })
     except requests.RequestException as e:
         return handle_error(f'Failed to fetch scores: {str(e)}', 500)
