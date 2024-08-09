@@ -12,10 +12,13 @@
     <header>
         <nav>
             <div class="navbar">
-                <a href="{{ url_for('schedule') }}" class="logo">ICTU</a>
+                <a href="{{ url_for('schedule') }}" class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+                    ICTU
+                </a>
                 <ul class="nav-links">
-                    <li><a href="{{ url_for('schedule') }}">Home</a></li>
-                    <li><a href="#" id="logout">Logout</a></li>
+                    <li><a href="{{ url_for('schedule') }}">Trang chủ</a></li>
+                    <li><a href="#" id="logout">Đăng xuất</a></li>
                 </ul>
             </div>
         </nav>

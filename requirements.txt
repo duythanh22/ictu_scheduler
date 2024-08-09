@@ -1,3 +1,5 @@
 requests~=2.28.2
 beautifulsoup4~=4.12.2
 flask~=3.0.0
+matplotlib~=3.8.0
+numpy~=1.26.1

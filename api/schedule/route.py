@@ -44,7 +44,8 @@ def fetch_registration_schedule(client):
         options = course_select.find_all('option')
         courses = [{'value': option['value'], 'text': option.text} for option in options if option.get('value')]
         if not courses:
-            return {'error': True, 'message': 'No courses found'}
+            return {'error': True, 'message': 'Không có lịch học hoặc lịch học không được hiển thị '
+                                              '(hãy kiểm tra lại dktc của bạn để chắc chắn hơn)'}
 
         registered_courses = []
         course_class_elements = soup.select('span[id^=gridRegistered_lblCourseClass_]')
@@ -188,12 +189,11 @@ def get_schedule():
         return jsonify(schedule_data)
 
     extracted_info = extract_course_info(schedule_data)
-    organized_schedule = organize_by_week(extracted_info)
     extracted_info = extract_course_info(schedule_data)
-    with open('check2.txt', 'w', encoding='utf-8') as f:
-        f.write(str(extracted_info))
+    # with open('check2.txt', 'w', encoding='utf-8') as f:
+    #     f.write(str(extracted_info))
     organized_schedule = organize_by_week(extracted_info)
-    with open('check1.txt', 'w', encoding='utf-8') as f:
-        f.write(str(organized_schedule))
+    # with open('check1.txt', 'w', encoding='utf-8') as f:
+    #     f.write(str(organized_schedule))
 
     return jsonify({'error': False, 'schedule': organized_schedule})

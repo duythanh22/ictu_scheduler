@@ -12,16 +12,16 @@
     <div class="row">
         <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
             <div class="position-sticky pt-3">
-                <h1 class="h2 px-3">Note Keeper</h1>
+                <h1 class="h2 px-3">Ghi chú</h1>
                 <p class="px-3">Xin chào <strong>{{ username }}</strong></p>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('schedule') }}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="logout">Logout</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('schedule') }}">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logout">Đăng xuất</a></li>
                 </ul>
                 <hr>
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>Your Notes</span>
-                    <button class="btn btn-sm btn-outline-secondary" id="new-note">New Note</button>
+                    <span>Ghi chú của bạn</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="new-note">Tạo ghi chú mới</button>
                 </h6>
                 <ul class="nav flex-column mb-2" id="note-list"></ul>
             </div>
@@ -29,12 +29,12 @@
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2" id="current-note-title" contenteditable="true">Select a Note</h1>
+                <h1 class="h2" id="current-note-title" contenteditable="true">Chọn ghi chú</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="save-note">Save</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="save-note">Lưu ghi chú</button>
 {#                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-title">Edit Title</button>#}
-                        <button type="button" class="btn btn-sm btn-outline-danger" id="delete-note">Delete</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="delete-note">Xoá ghi chú</button>
                     </div>
                 </div>
             </div>
@@ -262,5 +262,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeNotes();
 });
+$(document).ready(function(){
+        $('#logout').on('click', function(event){
+            event.preventDefault();
+            $.ajax({
+                url: '/api/logout',
+                type: 'POST',
+                success: function(response){
+                    if(response.message){
+                        window.location.href = "{{ url_for('index') }}";
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Logout request failed:", status, error);
+                }
+            });
+        });
+    });
 </script>
 {% endblock %}

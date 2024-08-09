@@ -4,32 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Điểm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        #charts {
-            width: 100%;
-            text-align: center;
-        }
-        #charts-image {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </head>
 <body>
     <header>
         <nav>
             <div class="navbar">
-                <a href="{{ url_for('schedule') }}" class="logo">ICTU</a>
+                <a href="{{ url_for('schedule') }}" class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+                    ICTU
+                </a>
+
                 <ul class="nav-links">
-                    <li><a href="{{ url_for('schedule') }}">Home</a></li>
-                    <li><a href="#" id="logout">Logout</a></li>
+                    <li><a href="{{ url_for('schedule') }}">Trang chủ</a></li>
+                    <li><a href="#" id="logout">Đăng xuất</a></li>
                 </ul>
             </div>
         </nav>
@@ -37,31 +27,31 @@
     <main>
         <div class="container">
             <h1 class="dialog-title">Điểm số sinh viên</h1>
-            <p class="dialog-description">Dưới đây là điểm số của bạn:</p>
+            <p class="dialog-description">Dưới đây là thông tin về điểm số của ba</p>
             <div class="table-container" id="score-content">
                 <div class="w-full min-h-40 flex items-center justify-center" id="loading">
                     <div class="spinner"></div>
                 </div>
                 <div id="buttons">
-                    <button onclick="showDetails()">Chi tiết điểm</button>
-                    <button onclick="showSummary()">Tổng kết</button>
-                    <button onclick="showCharts()">Thống kê</button>
+                    <button onclick="showDetails()">Điểm chi tiết</button>
+                    <button onclick="showSummary()">Điểm tổng kết</button>
+                    <button onclick="showCharts()">Thống kê điểm</button>
                 </div>
                 <div id="score-details" style="display: none;">
-                    <h2 class="dialog-title">Chi tiết điểm</h2>
+                    <h2 class="dialog-title">Chi tiết điểm theo học phần</h2>
                     <table id="score-detail-table">
                         <thead>
                             <tr>
-                                <th>STT</th>
-                                <th>Mã HP</th>
-                                <th>Tên HP</th>
-                                <th><a href="#" onclick="sortTable(3)">Số TC</a></th>
-                                <th>Đánh Giá</th>
-                                <th><a href="#" onclick="sortTable(5)">Chuyên Cần</a></th>
-                                <th><a href="#" onclick="sortTable(6)">Thi</a></th>
-                                <th><a href="#" onclick="sortTable(7)">Tổng Kết</a></th>
-                                <th><a href="#" onclick="sortTable(8)">Điểm Chữ</a></th>
-                            </tr>
+                            <th>STT</th>
+                            <th>Mã HP</th>
+                            <th>Tên HP</th>
+                            <th><a href="#" onclick="sortTable(3)">Số TC <i id="sort-icon-3" class="fas fa-sort"></i></a></th>
+                            <th>Đánh Giá</th>
+                            <th><a href="#" onclick="sortTable(5)">Chuyên Cần <i id="sort-icon-5" class="fas fa-sort"></i></a></th>
+                            <th><a href="#" onclick="sortTable(6)">Thi <i id="sort-icon-6" class="fas fa-sort"></i></a></th>
+                            <th><a href="#" onclick="sortTable(7)">Tổng Kết <i id="sort-icon-7" class="fas fa-sort"></i></a></th>
+                            <th><a href="#" onclick="sortTable(8)">Điểm Chữ <i id="sort-icon-8" class="fas fa-sort"></i></a></th>
+                        </tr>
                         </thead>
                         <tbody>
                             <!-- Details will be inserted here by JS -->
@@ -69,7 +59,7 @@
                     </table>
                 </div>
                 <div id="summary" style="display: none;">
-                    <h2 class="dialog-title">Tổng kết</h2>
+                    <h2 class="dialog-title">Chi tiết điểm tổng kết các kì và năm học</h2>
                     <table id="summary-table">
                         <thead>
                             <tr>
@@ -87,9 +77,12 @@
                         </tbody>
                     </table>
                 </div>
-                <div id="charts" style="display: none;">
-                    <h2 class="dialog-title">Thống kê điểm</h2>
-                    <img id="charts-image" src="" alt="Score Charts">
+                <div id="charts-container" style="display: none;">
+                    <h2 class="dialog-title">Một số biểu đồ thống kê điểm số của bạn</h2>
+                    <div id="charts-content">
+                        <img id="charts-image" src="" alt="Score Charts">
+                        <p id="no-charts-message" style="display: none;">Dữ liệu biểu đồ không khả dụng.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,27 +94,31 @@
 
     function showDetails() {
         $('#summary').hide();
-        $('#charts').hide();
+        $('#charts-container').hide();
         $('#score-details').show();
     }
 
     function showSummary() {
         $('#score-details').hide();
-        $('#charts').hide();
+        $('#charts-container').hide();
         $('#summary').show();
     }
 
     function showCharts() {
         $('#score-details').hide();
         $('#summary').hide();
-        $('#charts').show();
+        $('#charts-container').show();
 
         if (scoresData && scoresData.charts) {
             $('#charts-image').attr('src', 'data:image/png;base64,' + scoresData.charts);
+            $('#no-charts-message').hide();
+            $('#charts-image').show();
         } else {
-            $('#charts').html('<p>Charts data not available.</p>');
+            $('#charts-image').hide();
+            $('#no-charts-message').show();
         }
     }
+
 
     $(document).ready(function(){
         $('#logout').on('click', function(event){
@@ -207,21 +204,47 @@
         var table = document.getElementById("score-detail-table");
         var rows = Array.from(table.querySelectorAll("tbody tr"));
         var isAscending = table.getAttribute('data-sort-order') === 'asc';
+
+        // Sắp xếp các hàng trong bảng
         rows.sort(function(rowA, rowB) {
             var cellA = rowA.cells[columnIndex].textContent.trim();
             var cellB = rowB.cells[columnIndex].textContent.trim();
-            // Convert to numbers if cells contain numeric values
+
+            // Chuyển đổi thành số nếu giá trị trong ô là số
             var valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
             var valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
+
             return isAscending ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
         });
+
+        // Cập nhật bảng với các hàng đã sắp xếp
         var tbody = table.querySelector("tbody");
         rows.forEach(function(row) {
             tbody.appendChild(row);
         });
-        // Toggle sorting order
+
+        // Toggle thứ tự sắp xếp
         table.setAttribute('data-sort-order', isAscending ? 'desc' : 'asc');
+
+        // Cập nhật icon sắp xếp
+        updateSortIcons(columnIndex, isAscending);
     }
+
+    function updateSortIcons(sortedColumnIndex, isAscending) {
+        // Lấy tất cả các icon trong thẻ <th>
+        var allIcons = document.querySelectorAll("th a i");
+
+        allIcons.forEach(function(icon, index) {
+            if (index === sortedColumnIndex) {
+                // Cập nhật icon của cột được sắp xếp
+                icon.className = isAscending ? "fas fa-sort-up" : "fas fa-sort-down";
+            } else {
+                // Reset icon của các cột khác về mặc định
+                icon.className = "fas fa-sort";
+            }
+        });
+    }
+
 </script>
 
 </body>
