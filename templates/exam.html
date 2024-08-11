@@ -78,26 +78,30 @@
                     if (response.error) {
                         $('#error-message').text(response.message);
                     } else {
-                        $('#exam-details').show();
                         let examData = response.lichthiData;
-                        let examContent = '';
-                        examData.forEach(function(item) {
-                            examContent += `
-                                <tr>
-                                    <td>${item.stt}</td>
-                                    <td>${item.maHP}</td>
-                                    <td>${item.tenHP}</td>
-                                    <td>${item.soTC}</td>
-                                    <td>${item.ngayThi}</td>
-                                    <td>${item.caThi}</td>
-                                    <td>${item.hinhThucThi}</td>
-                                    <td>${item.soBaoDanh}</td>
-                                    <td>${item.phongThi}</td>
-                                    <td>${item.ghiChu}</td>
-                                </tr>
-                            `;
-                        });
-                        $('#exam-content').html(examContent);
+                        if (examData.length === 0) {
+                            $('#error-message').text('Bạn không có lịch thi');
+                        } else {
+                            $('#exam-details').show();
+                            let examContent = '';
+                            examData.forEach(function(item) {
+                                examContent += `
+                                    <tr>
+                                        <td>${item.stt}</td>
+                                        <td>${item.maHP}</td>
+                                        <td>${item.tenHP}</td>
+                                        <td>${item.soTC}</td>
+                                        <td>${item.ngayThi}</td>
+                                        <td>${item.caThi}</td>
+                                        <td>${item.hinhThucThi}</td>
+                                        <td>${item.soBaoDanh}</td>
+                                        <td>${item.phongThi}</td>
+                                        <td>${item.ghiChu}</td>
+                                    </tr>
+                                `;
+                            });
+                            $('#exam-content').html(examContent);
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -106,6 +110,7 @@
                 }
             });
         });
+
     </script>
 </body>
 </html>

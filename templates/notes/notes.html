@@ -33,7 +33,6 @@
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="save-note">Lưu ghi chú</button>
-{#                        <button type="button" class="btn btn-sm btn-outline-secondary" id="edit-title">Edit Title</button>#}
                         <button type="button" class="btn btn-sm btn-outline-danger" id="delete-note">Xoá ghi chú</button>
                     </div>
                 </div>
@@ -80,16 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function updateSingleNoteInList(oldTitle, newTitle) {
-        const noteList = document.getElementById('note-list');
-        const noteItem = noteList.querySelector(`a[data-title="${oldTitle}"]`);
-        if (noteItem) {
-            noteItem.textContent = newTitle;
-            noteItem.setAttribute('data-title', newTitle);
-            noteItem.onclick = () => loadNote(newTitle);
-        }
-    }
-
     function loadNote(title) {
         if (currentNoteTitle) {
             saveNote();
@@ -116,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function saveNote() {
+        if (!currentNoteTitle) return;
         $.ajax({
             url: '/notes',
             type: 'POST',
@@ -154,29 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    let titleElement = document.getElementById('current-note-title');
-    let originalTitle = '';
-
-    titleElement.addEventListener('focus', function() {
-        originalTitle = this.textContent;
-    });
-
-    titleElement.addEventListener('blur', function() {
-        let newTitle = this.textContent.trim();
-        if (newTitle !== originalTitle && newTitle !== '') {
-            updateNoteTitle(originalTitle, newTitle);
-        } else {
-            this.textContent = originalTitle;
-        }
-    });
-
-    titleElement.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            this.blur();
-        }
-    });
-
     function updateNoteTitle(oldTitle, newTitle) {
         $.ajax({
             url: '/notes',
@@ -188,36 +155,26 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             success: function(response) {
                 currentNoteTitle = response.next_note_title;
-                titleElement.textContent = currentNoteTitle;
+                document.getElementById('current-note-title').textContent = currentNoteTitle;
                 notes = notes.map(note =>
                     note.title === oldTitle ? {...note, title: currentNoteTitle} : note
                 );
-                updateSingleNoteInList(oldTitle, currentNoteTitle);
+                updateNoteList(); // Cập nhật danh sách ghi chú
             },
             error: function(error) {
                 console.error('Error editing note title:', error);
                 alert('Failed to edit note title. Please try again.');
-                titleElement.textContent = oldTitle;
+                document.getElementById('current-note-title').textContent = oldTitle; // Khôi phục tiêu đề cũ nếu có lỗi
             }
         });
     }
 
-    function updateSingleNoteInList(oldTitle, newTitle) {
-        const noteList = document.getElementById('note-list');
-        const noteItem = noteList.querySelector(`a[data-title="${oldTitle}"]`);
-        if (noteItem) {
-            noteItem.textContent = newTitle;
-            noteItem.setAttribute('data-title', newTitle);
-            noteItem.onclick = () => loadNote(newTitle);
-        }
-    }
-
     function deleteNote() {
         if (notes.length <= 1) {
-            alert("Cannot delete the last note.");
+            alert("Không thể xóa ghi chú cuối cùng.");
             return;
         }
-        if (confirm(`Are you sure you want to delete "${currentNoteTitle}"?`)) {
+        if (confirm(`Bạn có chắc chắn muốn xóa "${currentNoteTitle}"?`)) {
             $.ajax({
                 url: '/notes',
                 type: 'POST',
@@ -227,11 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 success: function(response) {
                     notes = notes.filter(note => note.title !== currentNoteTitle);
-                    loadNote(notes[0].title);
+                    loadNote(notes.length > 0 ? notes[0].title : '');
                 },
                 error: function(error) {
                     console.error('Error deleting note:', error);
-                    alert('Failed to delete note. Please try again.');
+                    alert('Không thể xóa ghi chú. Vui lòng thử lại.');
                 }
             });
         }
@@ -257,27 +214,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('new-note').addEventListener('click', createNewNote);
     document.getElementById('save-note').addEventListener('click', saveNote);
-    document.getElementById('edit-title').addEventListener('click', editNoteTitle);
     document.getElementById('delete-note').addEventListener('click', deleteNote);
+
+    let titleElement = document.getElementById('current-note-title');
+    let originalTitle = '';
+
+    titleElement.addEventListener('focus', function() {
+        originalTitle = this.textContent;
+    });
+
+    titleElement.addEventListener('blur', function() {
+        let newTitle = this.textContent.trim();
+        if (newTitle !== originalTitle && newTitle !== '') {
+            updateNoteTitle(originalTitle, newTitle);
+        } else {
+            this.textContent = originalTitle;
+        }
+    });
+
+    titleElement.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+        }
+    });
 
     initializeNotes();
 });
+
 $(document).ready(function(){
-        $('#logout').on('click', function(event){
-            event.preventDefault();
-            $.ajax({
-                url: '/api/logout',
-                type: 'POST',
-                success: function(response){
-                    if(response.message){
-                        window.location.href = "{{ url_for('index') }}";
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("Logout request failed:", status, error);
+    $('#logout').on('click', function(event){
+        event.preventDefault();
+        $.ajax({
+            url: '/api/logout',
+            type: 'POST',
+            success: function(response){
+                if(response.message){
+                    window.location.href = "{{ url_for('index') }}";
                 }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error("Logout request failed:", status, error);
+            }
         });
     });
+});
+
 </script>
 {% endblock %}

@@ -1,3 +1,5 @@
+# notes/route.py
+
 from flask import Blueprint, request, jsonify, session, render_template, redirect, url_for
 from notes.database import *
 
@@ -11,7 +13,9 @@ def notes():
 
     if request.method == 'GET':
         try:
+            # print(session["user_id"])
             username, note_titles, note_content = get_user_notes(session["user_id"])
+
             return render_template("notes/notes.html", note_content=note_content, note_titles=note_titles,
                                    username=username)
         except Exception as e:
@@ -24,7 +28,8 @@ def notes():
             if note_type == "save":
                 note_title = request.form.get("note_title")
                 note_content_updated = request.form.get("note_content_updated")
-                save_note_content(note_title, note_content_updated)
+
+                save_note_content(note_title, note_content_updated, session["user_id"])
                 return jsonify({"message": "Save successful"})
 
             elif note_type == "switch":

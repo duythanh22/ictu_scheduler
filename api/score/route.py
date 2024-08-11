@@ -107,24 +107,19 @@ def get_scores():
 
 def create_charts(data_score_detail, data_score_sum):
     # Create a figure with three vertically stacked subplots
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 20))
+    plt.subplots_adjust(hspace=0.5)
 
     # Pie chart for letter grade distribution
     diemchu_counts = Counter(item['diemChu'] for item in data_score_detail)
-
-    # Tạo nhãn với số lượng
     labels = [f'{label} ({count})' for label, count in diemchu_counts.items()]
     sizes = list(diemchu_counts.values())
 
-    # labels = list(diemchu_counts.keys())
-    # sizes = list(diemchu_counts.values())
-
     ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-    ax1.axis('equal')
-    ax1.set_title('Phân bố điểm theo điểm chữ', fontsize=14)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax1.set_title('Phân bố điểm theo điểm chữ', fontsize=16, pad=20, fontweight='bold')
 
     # Prepare data for GPA charts
-    years = []
     semesters = []
     semester_gpas = []
     yearly_gpas = []
@@ -132,7 +127,6 @@ def create_charts(data_score_detail, data_score_sum):
 
     for item in data_score_sum:
         if item['hocKy'] in ['1', '2']:
-            years.append(item['namHoc'])
             semesters.append(f"{item['namHoc']} - HK{item['hocKy']}")
             semester_gpas.append(float(item['TBC4']))
         elif item['hocKy'] == 'Cả Năm':
@@ -144,26 +138,26 @@ def create_charts(data_score_detail, data_score_sum):
     cumulative_gpas = np.cumsum(semester_gpas) / np.arange(1, len(semester_gpas) + 1)
 
     # Plot semester and yearly GPA trends
-    ax2.plot(semesters, semester_gpas, marker='o', label='GPA Học Kỳ', color='blue')
-    ax2.plot(semesters[1::2], yearly_gpas, marker='s', linestyle='--', color='red', label='GPA Cả Năm')
-
-    ax2.set_xlabel('Học Kỳ', fontsize=12)
-    ax2.set_ylabel('GPA (Thang 4.0)', fontsize=12)
-    ax2.set_title('Xu hướng GPA học kỳ và cả năm', fontsize=14)
+    ax2.plot(semesters, semester_gpas, marker='o', linestyle='-', color='#1f77b4', linewidth=2, label='GPA Học Kỳ')
+    ax2.plot(semesters[1::2], yearly_gpas, marker='s', linestyle='--', color='#ff7f0e', linewidth=2, label='GPA Cả Năm')
+    ax2.set_xlabel('Học Kỳ', fontsize=14, fontweight='bold')
+    ax2.set_ylabel('GPA (Thang 4.0)', fontsize=14, fontweight='bold')
+    ax2.set_title('Xu hướng GPA học kỳ và cả năm', fontsize=16, pad=20, fontweight='bold')
     ax2.set_xticks(range(len(semesters)))
     ax2.set_xticklabels(semesters, rotation=45, ha='right')
-    ax2.legend(loc='upper left')
+    ax2.legend(loc='upper left', fontsize=12)
+    ax2.grid(True, linestyle='--', alpha=0.7)
 
     # Plot cumulative GPA trend
-    ax3.plot(semesters, cumulative_gpas, marker='o', label='GPA Tích Lũy', color='green')
-    ax3.axhline(y=overall_gpa, color='red', linestyle='--', label='GPA Toàn Khóa')
-
-    ax3.set_xlabel('Học Kỳ', fontsize=12)
-    ax3.set_ylabel('GPA (Thang 4.0)', fontsize=12)
-    ax3.set_title('Xu hướng GPA tích lũy', fontsize=14)
+    ax3.plot(semesters, cumulative_gpas, marker='o', linestyle='-', color='#2ca02c', linewidth=2, label='GPA Tích Lũy')
+    ax3.axhline(y=overall_gpa, color='red', linestyle='--', linewidth=2, label='GPA Toàn Khóa')
+    ax3.set_xlabel('Học Kỳ', fontsize=14, fontweight='bold')
+    ax3.set_ylabel('GPA (Thang 4.0)', fontsize=14, fontweight='bold')
+    ax3.set_title('Xu hướng GPA tích lũy', fontsize=16, pad=20, fontweight='bold')
     ax3.set_xticks(range(len(semesters)))
     ax3.set_xticklabels(semesters, rotation=45, ha='right')
-    ax3.legend(loc='upper left')
+    ax3.legend(loc='upper left', fontsize=12)
+    ax3.grid(True, linestyle='--', alpha=0.7)
 
     plt.tight_layout()
 

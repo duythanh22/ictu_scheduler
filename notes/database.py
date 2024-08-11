@@ -24,10 +24,15 @@ def add_user(student_id, name):
 def add_sample_note(student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()[0]
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            print("User not found. Cannot add sample note.")
+            return
+        user_id = user['id']
         note_title = "Sample Note"
         note_content = "Sample Text"
-        c.execute("INSERT INTO notes (user_id, note_title, note_content) VALUES (?, ?, ?)", (user_id, note_title, note_content))
+        c.execute("INSERT INTO notes (user_id, note_title, note_content) VALUES (?, ?, ?)",
+                  (user_id, note_title, note_content))
         conn.commit()
 
 # Hàm lấy thông tin ghi chú của người dùng
@@ -35,17 +40,30 @@ def get_user_notes(student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         user = c.execute("SELECT id, name FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            print("User not found.")
+            return None, [], []
         user_id, username = user['id'], user['name']
         notes = c.execute("SELECT note_title, note_content FROM notes WHERE user_id = ?", (user_id,)).fetchall()
         note_titles = [note['note_title'] for note in notes]
-        note_content = [note['note_content'] for note in notes]
-        return username, note_titles, note_content
+        note_contents = [note['note_content'] for note in notes]
+        # print(user_id, note_titles, note_contents)
+        return username, note_titles, note_contents
 
 # Hàm lưu nội dung ghi chú
-def save_note_content(note_title, note_content_updated):
+def save_note_content(note_title, note_content_updated, student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("UPDATE notes SET note_content = ? WHERE note_title = ?", (note_content_updated, note_title))
+        # Xác định user_id
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            print("User not found. Cannot save note content.")
+            return
+        user_id = user['id']
+
+        # Cập nhật nội dung ghi chú
+        c.execute("UPDATE notes SET note_content = ? WHERE note_title = ? AND user_id = ?",
+                  (note_content_updated, note_title, user_id))
         conn.commit()
 
 # Hàm chuyển đổi ghi chú
@@ -54,11 +72,11 @@ def switch_note_content(cur_note_title, cur_note_content_updated, next_note_titl
         c = conn.cursor()
 
         # Lấy user_id từ student_id
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
-        if user_id is None:
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
             return "User ID not found", 404
 
-        user_id = user_id['id']
+        user_id = user['id']
 
         # Cập nhật nội dung ghi chú hiện tại
         c.execute("UPDATE notes SET note_content = ? WHERE note_title = ? AND user_id = ?",
@@ -81,7 +99,12 @@ def switch_note_content(cur_note_title, cur_note_content_updated, next_note_titl
 def create_new_note(cur_note_title, cur_note_content_updated, next_note_title, student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()[0]
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            print("User not found. Cannot create new note.")
+            return
+        user_id = user['id']
+
         if cur_note_title:
             c.execute("UPDATE notes SET note_content = ? WHERE note_title = ? AND user_id = ?",
                       (cur_note_content_updated, cur_note_title, user_id))
@@ -93,8 +116,13 @@ def create_new_note(cur_note_title, cur_note_content_updated, next_note_title, s
 def edit_note_title(cur_note_title, next_note_title, student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()[0]
-        note_titles = [note['note_title'].upper() for note in c.execute("SELECT note_title FROM notes WHERE user_id = ?", (user_id,)).fetchall()]
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            return "User not found.", 404
+        user_id = user['id']
+
+        note_titles = [note['note_title'].upper() for note in c.execute(
+            "SELECT note_title FROM notes WHERE user_id = ?", (user_id,)).fetchall()]
         if next_note_title.upper() in note_titles:
             return "Error: Title already exists", 400
         if next_note_title.replace(" ", "").replace("-", "").isalnum():
@@ -103,20 +131,26 @@ def edit_note_title(cur_note_title, next_note_title, student_id):
             conn.commit()
             return "Successfully edited note title", 200
         else:
-            return "Error: Not alphanumeric", 400
+            return "Error: Title must be alphanumeric", 400
 
 # Hàm tải danh sách ghi chú
 def setup_buttons(student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()[0]
-        note_titles = [note['note_title'] for note in c.execute("SELECT note_title FROM notes WHERE user_id = ?", (user_id,)).fetchall()]
+        note_titles = [note['note_title'] for note in c.execute(
+            "SELECT note_title FROM notes WHERE user_id = (SELECT id FROM users WHERE student_id = ?)",
+            (student_id,)).fetchall()]
         return note_titles
 
 # Hàm xóa ghi chú
 def delete_note_content(note_title, student_id):
     with get_db_connection() as conn:
         c = conn.cursor()
-        user_id = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()[0]
+        user = c.execute("SELECT id FROM users WHERE student_id = ?", (student_id,)).fetchone()
+        if user is None:
+            print("User not found. Cannot delete note.")
+            return
+        user_id = user['id']
+
         c.execute("DELETE FROM notes WHERE user_id = ? AND note_title = ?", (user_id, note_title))
         conn.commit()
