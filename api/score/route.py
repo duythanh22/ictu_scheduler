@@ -91,7 +91,8 @@ def get_scores():
                 'TBC10': cells[8].get_text(strip=True),
                 'TBC4': cells[10].get_text(strip=True)
             })
-
+        with open('check_score.txt', 'w', encoding='utf-8') as f:
+            f.write(str(data_score_sum))
         # Create charts
         charts = create_charts(data_score_detail, data_score_sum)
 
@@ -127,12 +128,15 @@ def create_charts(data_score_detail, data_score_sum):
 
     for item in data_score_sum:
         if item['hocKy'] in ['1', '2']:
-            semesters.append(f"{item['namHoc']} - HK{item['hocKy']}")
-            semester_gpas.append(float(item['TBC4']))
+            if item['TBC4']:  # Kiểm tra nếu 'TBC4' không bị trống
+                semesters.append(f"{item['namHoc']} - HK{item['hocKy']}")
+                semester_gpas.append(float(item['TBC4']))
         elif item['hocKy'] == 'Cả Năm':
-            yearly_gpas.append(float(item['TBC4']))
+            if item['TBC4']:  # Kiểm tra nếu 'TBC4' không bị trống
+                yearly_gpas.append(float(item['TBC4']))
         elif item['namHoc'] == 'Toàn khóa':
-            overall_gpa = float(item['TBC4'])
+            if item['TBC4']:  # Kiểm tra nếu 'TBC4' không bị trống
+                overall_gpa = float(item['TBC4'])
 
     # Calculate cumulative GPA
     cumulative_gpas = np.cumsum(semester_gpas) / np.arange(1, len(semester_gpas) + 1)
